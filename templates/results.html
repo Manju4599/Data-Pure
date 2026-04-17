@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+{% block title %}Results — Data Cleaned{% endblock %}
+
+{% block content %}
+
+<!-- Results Hero -->
+<div class="dp-results-hero">
+  <span class="dp-results-hero__icon">🎉</span>
+  <h1 class="dp-results-hero__title" style="background:var(--dp-grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">
+    Data Cleaned!
+  </h1>
+  <p class="dp-results-hero__sub">
+    <strong style="color:var(--dp-text)">{{ original_filename }}</strong>
+    has been processed and is ready to download.
+  </p>
+</div>
+
+<!-- ── Download CTA ── -->
+<div class="dp-cta">
+  <div style="text-align:center">
+    <p class="dp-section-label mb-1">Your file is ready</p>
+    <p style="font-size:.85rem;color:var(--dp-text-muted);margin-bottom:1.25rem">
+      Available for 1 hour · <strong style="color:var(--dp-text)">{{ cleaned_filename }}</strong>
+    </p>
+  </div>
+  <div class="d-flex gap-3 flex-wrap justify-content-center">
+    <a href="{{ url_for('download_file', filename=cleaned_filename) }}"
+       class="dp-btn-download">
+      <i class="fa-solid fa-download"></i>
+      Download Cleaned CSV
+    </a>
+    <a href="{{ url_for('index') }}" class="dp-btn-secondary">
+      <i class="fa-solid fa-rotate-left"></i>
+      Clean Another File
+    </a>
+  </div>
+</div>
+
+<!-- ── Stats grid ── -->
+<div class="dp-stats-grid">
+  <div class="dp-stat-card dp-stat-card--purple">
+    <div class="dp-stat-card__value" data-target="{{ report.final_rows }}">{{ report.final_rows }}</div>
+    <div class="dp-stat-card__label">Final Rows</div>
+  </div>
+  <div class="dp-stat-card dp-stat-card--cyan">
+    <div class="dp-stat-card__value">{{ report.final_columns }}</div>
+    <div class="dp-stat-card__label">Final Columns</div>
+  </div>
+  <div class="dp-stat-card dp-stat-card--rose">
+    <div class="dp-stat-card__value">{{ report.rows_removed }}</div>
+    <div class="dp-stat-card__label">Rows Removed</div>
+  </div>
+  <div class="dp-stat-card dp-stat-card--amber">
+    <div class="dp-stat-card__value">{{ report.duplicates_removed|default(0) }}</div>
+    <div class="dp-stat-card__label">Duplicates</div>
+  </div>
+  <div class="dp-stat-card" style="--val-color:var(--dp-purple-lt)">
+    <div class="dp-stat-card__value" style="color:var(--dp-purple-lt)">{{ report.missing_values_filled|default(0) }}</div>
+    <div class="dp-stat-card__label">Nulls Filled</div>
+  </div>
+</div>
+
+<!-- ── Quality + Steps ── -->
+<div class="row g-4 mb-4">
+
+  <!-- Quality Score card -->
+  <div class="col-lg-5">
+    <div class="dp-card h-100">
+      <div class="dp-card__header">
+        <div class="dp-card__icon dp-card__icon--emerald">
+          <i class="fa-solid fa-chart-pie"></i>
+        </div>
+        <div>
+          <p class="dp-card__title">Data Quality Score</p>
+          <p class="dp-card__sub">Based on rows retained &amp; issues resolved</p>
+        </div>
+      </div>
+
+      {% set score = ((report.final_rows / [report.original_rows, 1]|max) * 100)|round|int %}
+      {% set score_clamped = [score, 100]|min %}
+
+      <div class="dp-quality">
+        <div class="dp-quality-meter">
+          <svg width="70" height="70" viewBox="0 0 70 70">
+            <circle cx="35" cy="35" r="28" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="6"/>
+            <circle cx="35" cy="35" r="28" fill="none"
+                    stroke="url(#qgrad)" stroke-width="6"
+                    stroke-linecap="round"
+                    stroke-dasharray="{{ (score_clamped / 100 * 175.9)|round }} 175.9"/>
+            <defs>
+              <linearGradient id="qgrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%"   stop-color="#7c3aed"/>
+                <stop offset="100%" stop-color="#06b6d4"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          <div class="dp-quality-meter__text">{{ score_clamped }}%</div>
+        </div>
+        <div>
+          <p class="dp-quality__label">Data Retention</p>
+          <p class="dp-quality__title">
+            {% if score_clamped >= 90 %}Excellent
+            {% elif score_clamped >= 75 %}Good
+            {% elif score_clamped >= 50 %}Fair
+            {% else %}Heavy Clean{% endif %}
+          </p>
+          <p class="dp-quality__sub">
+            {{ report.original_rows }} → {{ report.final_rows }} rows ·
+            {{ report.original_columns }} → {{ report.final_columns }} columns
+          </p>
+        </div>
+      </div>
+
+      {% if report.column_renames %}
+      <hr class="dp-divider" />
+      <p class="dp-section-label">Column Name Changes</p>
+      <table class="dp-renames-table w-100">
+        <tbody>
+          {% for original, new in report.column_renames.items() %}
+          <tr>
+            <td><code>{{ original }}</code></td>
+            <td class="dp-arrow">→</td>
+            <td><code>{{ new }}</code></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+
+      {% if report.date_columns %}
+      <hr class="dp-divider" />
+      <p class="dp-section-label">Standardised Date Columns</p>
+      <div class="d-flex flex-wrap gap-2">
+        {% for col in report.date_columns %}
+        <span style="font-size:.75rem;padding:.2rem .6rem;background:rgba(16,185,129,.15);color:var(--dp-emerald);border-radius:6px;border:1px solid rgba(16,185,129,.3)">
+          <i class="fa-solid fa-calendar-check me-1"></i>{{ col }}
+        </span>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Steps performed -->
+  <div class="col-lg-7">
+    <div class="dp-card h-100">
+      <div class="dp-card__header">
+        <div class="dp-card__icon dp-card__icon--purple">
+          <i class="fa-solid fa-list-check"></i>
+        </div>
+        <div>
+          <p class="dp-card__title">Cleaning Steps Performed</p>
+          <p class="dp-card__sub">{{ report.steps_performed|length }} operation(s) applied</p>
+        </div>
+      </div>
+
+      <div class="dp-steps">
+        {% set step_meta = {
+          'missing_values':       ('fa-triangle-exclamation', 'var(--dp-amber)',   'Missing Values Handled'),
+          'duplicates':           ('fa-copy',                 'var(--dp-cyan)',    'Duplicate Records Removed'),
+          'text_standardization': ('fa-text-height',         'var(--dp-purple-lt)','Text Standardized'),
+          'date_standardization': ('fa-calendar-alt',        'var(--dp-emerald)', 'Date Formats Standardized'),
+          'outlier_removal':      ('fa-chart-line',          'var(--dp-rose)',    'Outliers Removed'),
+          'type_inference':       ('fa-gear',               'var(--dp-text-muted)','Data Types Inferred'),
+          'column_standardization':('fa-columns',           'var(--dp-cyan)',    'Column Names Standardized'),
+          'no_action_needed':     ('fa-circle-check',        'var(--dp-emerald)', 'Data Already Clean')
+        } %}
+        {% for step in report.steps_performed %}
+          {% set meta = step_meta.get(step, ('fa-check', 'var(--dp-emerald)', step|replace('_',' ')|title)) %}
+          <div class="dp-step" style="animation-delay:{{ loop.index0 * 0.07 }}s">
+            <div class="dp-step__dot dp-step__dot--ok" style="background:rgba(16,185,129,.12);color:{{ meta[1] }}">
+              <i class="fa-solid {{ meta[0] }}"></i>
+            </div>
+            <span>{{ meta[2] }}</span>
+            <i class="fa-solid fa-circle-check dp-step__check"></i>
+          </div>
+        {% endfor %}
+      </div>
+
+      <!-- Extra stats -->
+      {% if report.outliers_removed and report.outliers_removed > 0 %}
+      <hr class="dp-divider" />
+      <div style="font-size:.82rem;color:var(--dp-text-muted)">
+        <i class="fa-solid fa-chart-line me-1" style="color:var(--dp-rose)"></i>
+        <strong style="color:var(--dp-text)">{{ report.outliers_removed }}</strong> outlier rows removed
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Data Preview ── -->
+<div class="dp-card mb-4">
+  <div class="dp-card__header">
+    <div class="dp-card__icon dp-card__icon--cyan">
+      <i class="fa-solid fa-table"></i>
+    </div>
+    <div>
+      <p class="dp-card__title">Preview Cleaned Data</p>
+      <p class="dp-card__sub">Showing first 10 of {{ report.final_rows }} rows</p>
+    </div>
+  </div>
+
+  <div class="dp-table-wrap" style="max-height:400px">
+    {{ data_preview|safe }}
+  </div>
+</div>
+
+<!-- ── Tips ── -->
+<div class="dp-info-box">
+  <i class="fa-solid fa-lightbulb dp-info-box__icon"></i>
+  <div>
+    <p class="dp-section-label mb-1" style="color:var(--dp-purple-lt)">Tips for your cleaned data</p>
+    <ul>
+      <li>Always verify the cleaned data matches your expectations before use</li>
+      <li>Keep the original file as a backup — this cleaned version expires in 1 hour</li>
+      <li>Use the <code>/api/clean</code> endpoint to automate cleaning in your pipelines</li>
+      <li>For large files, consider splitting them before uploading for best performance</li>
+    </ul>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Animate stat numbers on page load
+document.querySelectorAll('.dp-stat-card__value[data-target]').forEach(el => {
+  const target = parseInt(el.dataset.target, 10);
+  if (isNaN(target)) return;
+  let start = 0;
+  const duration = 800;
+  const step = (timestamp) => {
+    if (!start) start = timestamp;
+    const progress = Math.min((timestamp - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.round(ease * target).toLocaleString();
+    if (progress < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+});
+</script>
+{% endblock %}
