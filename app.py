@@ -16,7 +16,11 @@ from utils.simple_cleaner import SimpleDataCleaner as DataCleaner
 from config import Config
 from utils.file_handler import FileHandler
 
-app = Flask(__name__)
+# Initialize Flask app
+base_dir = os.path.abspath(os.path.dirname(__file__))
+app = Flask(__name__, 
+            template_folder=os.path.join(base_dir, 'templates'),
+            static_folder=os.path.join(base_dir, 'static'))
 app.config.from_object(Config)
 
 # Initialize file handler
