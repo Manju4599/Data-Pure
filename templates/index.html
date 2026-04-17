@@ -1,0 +1,463 @@
+{% extends "base.html" %}
+{% block title %}Clean Your Data{% endblock %}
+
+{% block content %}
+
+<!-- Hero -->
+<section class="dp-hero">
+  <div class="dp-hero__badge">
+    <i class="fa-solid fa-bolt"></i> Instant Data Cleaning
+  </div>
+  <h1 class="dp-hero__title">
+    Turn messy data into<br/>
+    <span class="grad">clean, usable insights</span>
+  </h1>
+  <p class="dp-hero__sub">
+    Upload any CSV, Excel, or JSON file. Configure cleaning rules. Download perfectly formatted data in seconds.
+  </p>
+</section>
+
+<!-- Main grid -->
+<div class="row g-4">
+
+  <!-- ── Left: Upload + Options ─── -->
+  <div class="col-lg-7">
+    <form id="uploadForm" method="POST" enctype="multipart/form-data">
+
+      <!-- Upload card -->
+      <div class="dp-card mb-4">
+        <div class="dp-card__header">
+          <div class="dp-card__icon dp-card__icon--purple">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+          </div>
+          <div>
+            <p class="dp-card__title">Upload Data File</p>
+            <p class="dp-card__sub">CSV, Excel (.xlsx / .xls), JSON, TXT — up to 50 MB</p>
+          </div>
+        </div>
+
+        <!-- Drop zone -->
+        <div class="dp-dropzone" id="dropzone">
+          <span class="dp-dropzone__icon"><i class="fa-solid fa-file-arrow-up"></i></span>
+          <p class="dp-dropzone__title">Drag &amp; drop your file here</p>
+          <p class="dp-dropzone__sub">or click to browse</p>
+          <input type="file" id="file" name="file" accept=".csv,.xlsx,.xls,.json,.txt" required />
+        </div>
+
+        <!-- Selected file indicator -->
+        <div class="dp-file-selected" id="fileSelected">
+          <i class="fa-solid fa-file-circle-check" style="color:var(--dp-emerald);flex-shrink:0"></i>
+          <span class="dp-file-selected__name" id="fileSelectedName"></span>
+          <span id="fileSelectedSize" style="font-size:.75rem;color:var(--dp-text-muted);white-space:nowrap"></span>
+        </div>
+
+        <!-- Preview button -->
+        <div class="mt-3 d-flex align-items-center gap-2">
+          <button type="button" class="dp-btn-preview" id="previewBtn">
+            <i class="fa-solid fa-eye"></i> Preview Data
+          </button>
+          <span class="dp-hint" id="fileHint">Select a file to preview its structure</span>
+        </div>
+
+        <!-- Preview output -->
+        <div id="previewSection" style="display:none" class="mt-3">
+          <div class="dp-preview-stats" id="previewStats"></div>
+          <div class="dp-table-wrap" id="previewContent"></div>
+        </div>
+      </div>
+
+      <!-- Cleaning Options card -->
+      <div class="dp-card mb-4">
+        <div class="dp-card__header">
+          <div class="dp-card__icon dp-card__icon--cyan">
+            <i class="fa-solid fa-sliders"></i>
+          </div>
+          <div>
+            <p class="dp-card__title">Cleaning Options</p>
+            <p class="dp-card__sub">Expand each section to configure</p>
+          </div>
+        </div>
+
+        <div class="dp-options" id="cleaningOptions">
+
+          <!-- ── Missing Values ────── -->
+          <div class="dp-option-item">
+            <button class="dp-option-toggle" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#opt-missing"
+                    aria-expanded="true" aria-controls="opt-missing">
+              <span class="dp-opt-icon" style="background:rgba(245,158,11,.15);color:var(--dp-amber)">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+              </span>
+              Missing Values
+              <i class="fas fa-chevron-down dp-chevron"></i>
+            </button>
+            <div id="opt-missing" class="collapse show dp-option-body">
+              <div class="mb-3">
+                <label class="dp-label">Handling Strategy</label>
+                <select class="dp-select" name="handle_missing">
+                  <option value="auto">Auto-detect best method</option>
+                  <option value="mean">Fill with Mean (numeric)</option>
+                  <option value="median" selected>Fill with Median (numeric)</option>
+                  <option value="mode">Fill with Mode</option>
+                  <option value="drop">Drop rows with missing values</option>
+                  <option value="none">Don't handle</option>
+                </select>
+              </div>
+              <div>
+                <label class="dp-label">
+                  Column Drop Threshold <span class="dp-range-val" id="thresholdDisplay">50%</span>
+                </label>
+                <input type="range" class="dp-range" min="0" max="1" step="0.05"
+                       name="missing_threshold" id="missingThreshold" value="0.5" />
+                <div class="dp-range-labels">
+                  <span>0%</span><span>50%</span><span>100%</span>
+                </div>
+                <p class="dp-hint">Drop columns where missing values exceed this percentage</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Duplicates ────────── -->
+          <div class="dp-option-item">
+            <button class="dp-option-toggle collapsed" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#opt-dups"
+                    aria-expanded="false" aria-controls="opt-dups">
+              <span class="dp-opt-icon" style="background:rgba(6,182,212,.15);color:var(--dp-cyan)">
+                <i class="fa-solid fa-copy"></i>
+              </span>
+              Duplicate Records
+              <i class="fas fa-chevron-down dp-chevron"></i>
+            </button>
+            <div id="opt-dups" class="collapse dp-option-body">
+              <label class="dp-label">Handling Method</label>
+              <select class="dp-select" name="handle_duplicates">
+                <option value="drop" selected>Remove duplicates</option>
+                <option value="flag">Flag duplicates (add column)</option>
+                <option value="none">Don't handle</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- ── Standardization ───── -->
+          <div class="dp-option-item">
+            <button class="dp-option-toggle collapsed" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#opt-std"
+                    aria-expanded="false" aria-controls="opt-std">
+              <span class="dp-opt-icon" style="background:rgba(16,185,129,.15);color:var(--dp-emerald)">
+                <i class="fa-solid fa-wand-sparkles"></i>
+              </span>
+              Standardization
+              <i class="fas fa-chevron-down dp-chevron"></i>
+            </button>
+            <div id="opt-std" class="collapse dp-option-body">
+              <label class="dp-switch">
+                <input type="checkbox" name="standardize_text" id="stdText" checked />
+                <span class="dp-switch__thumb"></span>
+                <span class="dp-switch__label">Standardize Text (trim, strip, remove extra spaces)</span>
+              </label>
+              <label class="dp-switch">
+                <input type="checkbox" name="standardize_dates" id="stdDates" checked />
+                <span class="dp-switch__thumb"></span>
+                <span class="dp-switch__label">Standardize Date Formats → YYYY-MM-DD</span>
+              </label>
+              <label class="dp-switch">
+                <input type="checkbox" name="infer_types" id="inferTypes" checked />
+                <span class="dp-switch__thumb"></span>
+                <span class="dp-switch__label">Auto-detect &amp; Convert Data Types</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- ── Outliers ───────────── -->
+          <div class="dp-option-item">
+            <button class="dp-option-toggle collapsed" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#opt-out"
+                    aria-expanded="false" aria-controls="opt-out">
+              <span class="dp-opt-icon" style="background:rgba(244,63,94,.15);color:var(--dp-rose)">
+                <i class="fa-solid fa-chart-line"></i>
+              </span>
+              Outlier Detection
+              <i class="fas fa-chevron-down dp-chevron"></i>
+            </button>
+            <div id="opt-out" class="collapse dp-option-body">
+              <label class="dp-switch mb-3">
+                <input type="checkbox" name="remove_outliers" id="removeOutliers" />
+                <span class="dp-switch__thumb"></span>
+                <span class="dp-switch__label">Remove Statistical Outliers</span>
+              </label>
+              <div>
+                <label class="dp-label">Detection Method</label>
+                <select class="dp-select" name="outlier_method">
+                  <option value="iqr" selected>IQR (Interquartile Range) — robust</option>
+                  <option value="zscore">Z-Score — assumes normal distribution</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Advanced ──────────── -->
+          <div class="dp-option-item">
+            <button class="dp-option-toggle collapsed" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#opt-adv"
+                    aria-expanded="false" aria-controls="opt-adv">
+              <span class="dp-opt-icon" style="background:rgba(124,58,237,.15);color:var(--dp-purple-lt)">
+                <i class="fa-solid fa-gear"></i>
+              </span>
+              Advanced Options
+              <i class="fas fa-chevron-down dp-chevron"></i>
+            </button>
+            <div id="opt-adv" class="collapse dp-option-body">
+              <div class="mb-3">
+                <label class="dp-label">File Encoding</label>
+                <select class="dp-select" name="encoding">
+                  <option value="utf-8" selected>UTF-8 (Recommended)</option>
+                  <option value="latin1">Latin-1 / ISO-8859-1</option>
+                  <option value="cp1252">Windows-1252</option>
+                  <option value="ascii">ASCII</option>
+                </select>
+                <p class="dp-hint">Change if you see garbled characters in your data</p>
+              </div>
+              <label class="dp-switch">
+                <input type="checkbox" name="save_report" id="saveReport" checked />
+                <span class="dp-switch__thumb"></span>
+                <span class="dp-switch__label">Generate detailed cleaning report</span>
+              </label>
+            </div>
+          </div>
+
+        </div><!-- /.dp-options -->
+      </div>
+
+      <!-- Submit -->
+      <button type="submit" class="dp-btn-primary" id="submitBtn">
+        <i class="fa-solid fa-wand-magic-sparkles"></i>
+        Clean My Data
+      </button>
+
+    </form>
+  </div>
+
+  <!-- ── Right: How It Works ─── -->
+  <div class="col-lg-5">
+    <div class="dp-card mb-4" style="position:sticky;top:80px">
+      <div class="dp-card__header">
+        <div class="dp-card__icon dp-card__icon--emerald">
+          <i class="fa-solid fa-circle-info"></i>
+        </div>
+        <div>
+          <p class="dp-card__title">How It Works</p>
+          <p class="dp-card__sub">5 simple steps to clean data</p>
+        </div>
+      </div>
+
+      <div class="dp-how">
+        <div class="dp-how-step">
+          <div class="dp-how-step__num">1</div>
+          <div>
+            <p class="dp-how-step__title">Upload your file</p>
+            <p class="dp-how-step__sub">CSV, Excel, JSON, or TXT up to 50 MB</p>
+          </div>
+        </div>
+        <div class="dp-how-step">
+          <div class="dp-how-step__num">2</div>
+          <div>
+            <p class="dp-how-step__title">Preview your data</p>
+            <p class="dp-how-step__sub">See the structure before cleaning</p>
+          </div>
+        </div>
+        <div class="dp-how-step">
+          <div class="dp-how-step__num">3</div>
+          <div>
+            <p class="dp-how-step__title">Configure options</p>
+            <p class="dp-how-step__sub">Missing values, duplicates, outliers &amp; more</p>
+          </div>
+        </div>
+        <div class="dp-how-step">
+          <div class="dp-how-step__num">4</div>
+          <div>
+            <p class="dp-how-step__title">Click "Clean My Data"</p>
+            <p class="dp-how-step__sub">Processing happens in seconds</p>
+          </div>
+        </div>
+        <div class="dp-how-step">
+          <div class="dp-how-step__num">5</div>
+          <div>
+            <p class="dp-how-step__title">Download &amp; analyse</p>
+            <p class="dp-how-step__sub">Get your clean CSV with a full report</p>
+          </div>
+        </div>
+      </div>
+
+      <hr class="dp-divider" />
+
+      <p class="dp-section-label">Try a sample file</p>
+      <p class="dp-hint mb-2">Copy this into a <code>.csv</code> file and upload it:</p>
+      <div class="dp-sample" id="sampleData">
+        <button class="dp-copy-btn" id="copyBtn" onclick="copySample()">Copy</button>Name,Age,Email,Salary,Join_Date
+John Doe,25,john@example.com,50000,2023-01-15
+Jane Smith,,jane@example.com,55000,15/01/2023
+Bob Johnson,30,bob@example.com,52000,2023-01-20
+John Doe,25,john@example.com,50000,2023-01-15
+Alice Brown,35,alice@example.com,60000,01-20-2023
+Carol White,28,carol@example.com,48000,2023-01-25</div>
+
+      <hr class="dp-divider" />
+
+      <div class="d-flex flex-wrap gap-2">
+        <div style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--dp-text-muted)">
+          <i class="fa-solid fa-shield-halved" style="color:var(--dp-emerald)"></i> Files auto-deleted after 1 hour
+        </div>
+        <div style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--dp-text-muted)">
+          <i class="fa-solid fa-bolt" style="color:var(--dp-amber)"></i> API endpoint at <code style="font-size:.7rem;color:var(--dp-purple-lt)">/api/clean</code>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Loading Overlay ── -->
+<div class="dp-loading-overlay" id="loadingOverlay">
+  <div class="dp-spinner"></div>
+  <div class="dp-loading-text">Cleaning your data…</div>
+  <div class="dp-loading-sub">This may take a few seconds for large files</div>
+  <div class="dp-progress"><div class="dp-progress-bar"></div></div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Drag & Drop ───────────────────────────────────────────────────
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('file');
+
+['dragenter','dragover'].forEach(e => dropzone.addEventListener(e, ev => {
+  ev.preventDefault(); dropzone.classList.add('dp-drag-over');
+}));
+['dragleave','drop'].forEach(e => dropzone.addEventListener(e, ev => {
+  ev.preventDefault(); dropzone.classList.remove('dp-drag-over');
+  if (ev.type === 'drop') {
+    fileInput.files = ev.dataTransfer.files;
+    handleFileSelect(fileInput.files[0]);
+  }
+}));
+
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) handleFileSelect(fileInput.files[0]);
+});
+
+function handleFileSelect(file) {
+  if (!file) return;
+  const el = document.getElementById('fileSelected');
+  const nm = document.getElementById('fileSelectedName');
+  const sz = document.getElementById('fileSelectedSize');
+  nm.textContent = file.name;
+  sz.textContent = '(' + (file.size / 1024 < 1024
+    ? (file.size / 1024).toFixed(1) + ' KB'
+    : (file.size / 1024 / 1024).toFixed(2) + ' MB') + ')';
+  el.classList.add('show');
+  document.getElementById('fileHint').textContent = 'Click "Preview Data" to inspect before cleaning';
+}
+
+// ── Range Slider ──────────────────────────────────────────────────
+const slider = document.getElementById('missingThreshold');
+const display = document.getElementById('thresholdDisplay');
+slider.addEventListener('input', () => {
+  display.textContent = Math.round(slider.value * 100) + '%';
+});
+
+// ── Preview ──────────────────────────────────────────────────────
+document.getElementById('previewBtn').addEventListener('click', function () {
+  const fi = fileInput;
+  if (!fi.files.length) { showToast('Please select a file first', 'warning'); return; }
+
+  const btn = this;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading…';
+
+  const fd = new FormData();
+  fd.append('file', fi.files[0]);
+
+  fetch('/preview', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) { showToast('Preview error: ' + data.error, 'error'); return; }
+      renderPreview(data);
+    })
+    .catch(() => showToast('Network error loading preview', 'error'))
+    .finally(() => {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-eye"></i> Preview Data';
+    });
+});
+
+function renderPreview(data) {
+  // Stats bar
+  const totalMissing = Object.values(data.missing_values).reduce((a, b) => a + b, 0);
+  document.getElementById('previewStats').innerHTML = `
+    <div class="dp-preview-stat"><strong>${data.shape[0].toLocaleString()}</strong> rows</div>
+    <div class="dp-preview-stat"><strong>${data.shape[1]}</strong> columns</div>
+    <div class="dp-preview-stat" style="color:${totalMissing>0?'var(--dp-amber)':'var(--dp-emerald)'}">
+      <i class="fa-solid fa-${totalMissing>0?'triangle-exclamation':'circle-check'}"></i>
+      <strong>${totalMissing}</strong> missing values
+    </div>`;
+
+  // Table
+  let html = `<table class="dp-table">
+    <thead><tr><th>#</th>${data.columns.map(c => {
+      const m = data.missing_values[c] || 0;
+      return `<th>${c}${m>0?`<span class="missing-badge"><i class="fa-solid fa-triangle-exclamation"></i>${m}</span>`:''}</th>`;
+    }).join('')}</tr></thead>
+    <tbody>${data.head.map((row, i) =>
+      `<tr><td class="row-num">${i+1}</td>${data.columns.map(c => {
+        const v = row[c];
+        return v === null || v === undefined || v === ''
+          ? `<td class="null-val">null</td>`
+          : `<td>${String(v).length > 40 ? String(v).slice(0, 40) + '…' : v}</td>`;
+      }).join('')}</tr>`
+    ).join('')}</tbody></table>`;
+
+  document.getElementById('previewContent').innerHTML = html;
+  document.getElementById('previewSection').style.display = 'block';
+  document.getElementById('previewSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ── Form Submit ──────────────────────────────────────────────────
+document.getElementById('uploadForm').addEventListener('submit', function (e) {
+  if (!fileInput.files.length) { 
+    e.preventDefault(); 
+    showToast('Please select a file first', 'warning'); 
+    return; 
+  }
+  document.getElementById('loadingOverlay').classList.add('active');
+  document.getElementById('submitBtn').disabled = true;
+});
+
+// ── Sample copy ──────────────────────────────────────────────────
+function copySample() {
+  const text = document.getElementById('sampleData').innerText.replace(/^Copy\n?/, '');
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  });
+}
+
+// ── Toast helper ─────────────────────────────────────────────────
+function showToast(msg, type = 'info') {
+  const icons = { info:'fa-circle-info', success:'fa-circle-check', error:'fa-circle-xmark', warning:'fa-triangle-exclamation' };
+  const area = document.querySelector('.dp-flash-area') || (() => {
+    const d = document.createElement('div');
+    d.className = 'dp-flash-area';
+    document.body.appendChild(d);
+    return d;
+  })();
+  const toast = document.createElement('div');
+  toast.className = `dp-toast dp-toast--${type}`;
+  toast.innerHTML = `<i class="fa-solid ${icons[type]}"></i><span>${msg}</span><button class="dp-toast__close" onclick="this.parentElement.remove()"><i class="fa-solid fa-xmark"></i></button>`;
+  area.appendChild(toast);
+  setTimeout(() => toast.remove(), 5000);
+}
+</script>
+{% endblock %}
