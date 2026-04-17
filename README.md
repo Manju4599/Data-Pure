@@ -7,6 +7,8 @@
 
 **DataPure** is a modern, high-performance web application designed to instantly clean, standardize, and fix messy data files (CSV, Excel, JSON). It features a premium "Dark Glassmorphism" UI and relies exclusively on powerful Python tools like Pandas and SciPy for backend processing.
 
+🚀 **Live Demo:** [https://data-pure.vercel.app/](https://data-pure.vercel.app/)
+
 ---
 
 ## ✨ Features
