@@ -1,4 +1,4 @@
-# ⚡ DataPure
+   # ⚡ DataPure
 
 ![DataPure Banner](https://img.shields.io/badge/DataPure-Clean_Your_Data_Instantly-6D28D9?style=for-the-badge&logo=data-analysis)
 ![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python)
